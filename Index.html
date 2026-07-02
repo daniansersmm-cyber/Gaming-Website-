@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Game Time, Mohsin!</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF8EC;
+    --sunshine:#FFC93C;
+    --coral:#FF6B5E;
+    --teal:#3FC9B8;
+    --grape:#8B6BFF;
+    --navy:#20263B;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,201,60,0.35), transparent 40%),
+      radial-gradient(circle at 85% 15%, rgba(139,107,255,0.3), transparent 45%),
+      radial-gradient(circle at 80% 85%, rgba(63,201,184,0.3), transparent 45%),
+      var(--cream);
+    font-family:'Nunito', sans-serif;
+    color: var(--navy);
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  .stage{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .screen{ display:none; width:100%; max-width:560px; text-align:center; }
+  .screen.active{ display:block; animation: pop .45s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pop{
+    from{ opacity:0; transform: translateY(24px) scale(.95); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+  h1,h2{ font-family:'Baloo 2', sans-serif; font-weight:800; margin:0 0 8px; }
+  h1{ font-size:clamp(1.9rem,6vw,2.6rem); color:var(--coral); }
+  h2{ font-size:clamp(1.4rem,5vw,1.9rem); color:var(--grape); }
+  p.sub{ font-size:1.05rem; margin:0 0 26px; }
+  .eyebrow{
+    font-family:'Baloo 2', sans-serif; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; font-size:.8rem; color:var(--teal); margin-bottom:6px;
+  }
+  .btn{
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:1rem;
+    background: var(--navy); color:#fff; border:none; border-radius:999px;
+    padding:14px 30px; cursor:pointer; transition: transform .15s ease, background .2s ease;
+    box-shadow: 0 8px 20px rgba(32,38,59,0.25);
+  }
+  .btn:hover{ transform: translateY(-2px); background:#141828; }
+  .btn.secondary{ background:#fff; color:var(--navy); border:2px solid var(--navy); box-shadow:none; }
+
+  .score-pill{
+    display:inline-block; margin-top:18px; font-family:'Baloo 2', sans-serif;
+    font-weight:700; background:#fff; border-radius:999px; padding:8px 20px;
+    box-shadow: 0 6px 16px rgba(32,38,59,0.12); color: var(--grape);
+  }
+
+  /* Quiz */
+  .quiz-card{
+    background:#fff; border-radius:20px; padding:30px 26px; box-shadow: 0 20px 45px rgba(32,38,59,0.15);
+  }
+  .q-count{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--teal); margin-bottom:10px; }
+  .q-text{ font-size:1.25rem; font-weight:700; margin-bottom:20px; }
+  .options{ display:grid; gap:12px; }
+  .opt{
+    font-family:'Nunito',sans-serif; font-size:1rem; font-weight:600;
+    background: var(--cream); border:2px solid transparent; border-radius:14px;
+    padding:13px 16px; cursor:pointer; text-align:left; transition: all .15s ease;
+  }
+  .opt:hover{ border-color: var(--grape); }
+  .opt.correct{ background:#DFF6E8; border-color:#3EB56B; }
+  .opt.wrong{ background:#FFE3E0; border-color:var(--coral); }
+  .opt[disabled]{ cursor:default; }
+
+  /* Memory */
+  .grid{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin:0 auto 18px;
+    max-width:420px;
+  }
+  .card{
+    aspect-ratio:1; border-radius:12px; background: var(--grape);
+    display:flex; align-items:center; justify-content:center; font-size:1.8rem;
+    cursor:pointer; user-select:none; transform-style:preserve-3d; transition: transform .35s ease;
+    box-shadow: 0 8px 18px rgba(32,38,59,0.15);
+  }
+  .card.flipped, .card.matched{ background:#fff; }
+  .card .face{ display:none; }
+  .card.flipped .back, .card.matched .back{ display:none; }
+  .card.flipped .front, .card.matched .front{ display:flex; }
+  .card .front{ display:none; align-items:center; justify-content:center; }
+  .card .back{ display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.4rem; }
+  .card.matched{ opacity:.55; cursor:default; }
+  .stat-row{ display:flex; justify-content:center; gap:22px; margin-bottom:14px; font-weight:700; font-family:'Baloo 2',sans-serif; color:var(--navy); }
+
+  /* Reflex */
+  .reflex-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; max-width:340px; margin:0 auto 18px;
+  }
+  .hole{
+    aspect-ratio:1; border-radius:16px; background:#fff; box-shadow: inset 0 0 0 2px #eee;
+    display:flex; align-items:center; justify-content:center; font-size:2rem; cursor:pointer; overflow:hidden;
+  }
+  .hole .mole{ transform: scale(0); transition: transform .12s ease; }
+  .hole.up .mole{ transform: scale(1); }
+  .timer-bar-wrap{ background:#eee; border-radius:999px; height:10px; max-width:340px; margin:0 auto 18px; overflow:hidden; }
+  .timer-bar{ height:100%; background: var(--coral); width:100%; transition: width .1s linear; }
+
+  /* Results */
+  .badge{
+    font-size:3.2rem; margin:10px 0;
+  }
+  .badge-title{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:1.7rem; color:var(--coral); margin-bottom:6px; }
+  .breakdown{
+    background:#fff; border-radius:16px; padding:18px 22px; margin:20px 0; text-align:left;
+    box-shadow: 0 12px 30px rgba(32,38,59,0.1); font-weight:600;
+  }
+  .breakdown div{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #eee; }
+  .breakdown div:last-child{ border-bottom:none; }
+
+  #confetti-canvas{ position:fixed; inset:0; pointer-events:none; z-index:5; }
+
+  .credit{
+    position:fixed; bottom:14px; left:0; right:0; text-align:center;
+    font-family:'Baloo 2', sans-serif; font-weight:600; font-size:.8rem;
+    color:#9199B0; z-index:6; pointer-events:none;
+  }
+
+  .big-score{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:clamp(3.4rem, 14vw, 5rem);
+    color: var(--coral);
+    line-height:1;
+    margin:6px 0 0;
+  }
+  .big-score span{
+    font-size:0.35em;
+    color: var(--navy);
+    font-weight:700;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .screen.active{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+<div class="credit">Made with 💛 by Dania</div>
+<div class="stage">
+
+  <!-- WELCOME -->
+  <section class="screen active" id="screen-welcome">
+    <div class="eyebrow">Ek challenge tumhara intezaar kar raha hai</div>
+    <h1 id="greeting">Hey Mohsin! 🎮</h1>
+    <p class="sub">Teen quick rounds. Na zyada mushkil, na zyada asaan — bas itna ke bragging rights mil jayein. Ready ho?</p>
+    <button class="btn" id="startBtn">Chalo Khelte Hain</button>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="screen" id="screen-quiz">
+    <div class="eyebrow">Round 1 / 3</div>
+    <h2>Dimaghi Sawal</h2>
+    <div class="quiz-card">
+      <div class="q-count" id="qCount">Sawal 1 / 5</div>
+      <div class="q-text" id="qText"></div>
+      <div class="options" id="qOptions"></div>
+    </div>
+    <div class="score-pill" id="quizScorePill">Score: 0</div>
+  </section>
+
+  <!-- MEMORY -->
+  <section class="screen" id="screen-memory">
+    <div class="eyebrow">Round 2 / 3</div>
+    <h2>Yaadasht Ka Test</h2>
+    <p class="sub">Saare 6 jode dhoondo. Kam moves = zyada points.</p>
+    <div class="stat-row"><span id="moveCount">Chaalein: 0</span><span id="pairCount">Jode: 0 / 6</span></div>
+    <div class="grid" id="memoryGrid"></div>
+  </section>
+
+  <!-- REFLEX -->
+  <section class="screen" id="screen-reflex">
+    <div class="eyebrow">Round 3 / 3</div>
+    <h2>Tez Reflexes</h2>
+    <p class="sub">Til (mole) ko wapis chupne se pehle maaro. 15 seconds — shuru!</p>
+    <div class="stat-row"><span id="hitCount">Hits: 0</span></div>
+    <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar"></div></div>
+    <div class="reflex-grid" id="reflexGrid"></div>
+    <button class="btn" id="reflexStartBtn">Round Shuru Karo</button>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="screen-results">
+    <div class="eyebrow">Aakhri Result</div>
+    <div class="big-score" id="bigScore">0<span>/100</span></div>
+    <div class="badge" id="badgeEmoji">🏆</div>
+    <div class="badge-title" id="badgeTitle">Legendary Bhai</div>
+    <p class="sub" id="badgeSub">Tumne kamaal kar diya, Mohsin.</p>
+    <div class="breakdown">
+      <div><span>Dimaghi Sawal</span><span id="r-quiz">0 / 50</span></div>
+      <div><span>Yaadasht Test</span><span id="r-memory">0 / 30</span></div>
+      <div><span>Tez Reflexes</span><span id="r-reflex">0 / 20</span></div>
+      <div><span><strong>Total</strong></span><span id="r-total"><strong>0 / 100</strong></span></div>
+    </div>
+    <button class="btn" id="replayBtn">Dobara Khelo</button>
+  </section>
+
+</div>
+
+<script>
+const NAME = "Mohsin";
+document.getElementById('greeting').textContent = `Hey ${NAME}! 🎮`;
+
+// ---------- navigation ----------
+const screens = {
+  welcome: document.getElementById('screen-welcome'),
+  quiz: document.getElementById('screen-quiz'),
+  memory: document.getElementById('screen-memory'),
+  reflex: document.getElementById('screen-reflex'),
+  results: document.getElementById('screen-results'),
+};
+function goTo(name){
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+// ---------- confetti ----------
+const canvas = document.getElementById('confetti-canvas');
+const ctx = canvas.getContext('2d');
+function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+resize(); addEventListener('resize', resize);
+const colors = ['#FFC93C', '#FF6B5E', '#3FC9B8', '#8B6BFF'];
+let particles = [];
+function burstConfetti(){
+  particles = [];
+  for(let i=0;i<140;i++){
+    particles.push({
+      x: canvas.width/2 + (Math.random()-0.5)*80, y: canvas.height*0.3,
+      vx:(Math.random()-0.5)*11, vy: Math.random()*-9-3,
+      size: Math.random()*7+4, color: colors[Math.floor(Math.random()*colors.length)],
+      rot: Math.random()*360, vr:(Math.random()-0.5)*12, gravity:0.28+Math.random()*0.12
+    });
+  }
+  requestAnimationFrame(animateConfetti);
+}
+function animateConfetti(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  let alive=false;
+  particles.forEach(p=>{
+    p.vy+=p.gravity; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    if(p.y < canvas.height+20) alive=true;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+    ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); ctx.restore();
+  });
+  if(alive) requestAnimationFrame(animateConfetti); else ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+// ---------- state ----------
+let scores = { quiz:0, memory:0, reflex:0 };
+
+// ---------- ROUND 1: QUIZ ----------
+const questions = [
+  { q:"Makdi (spider) ki kitni tangein hoti hain?", opts:["6","8","10","Jitni zarurat ho, utni honestly"], correct:1 },
+  { q:"7 x 8 kitna hota hai?", opts:["54","56","64","Ye trick sawal hai"], correct:1 },
+  { q:"Kaunsa planet 'Red Planet' kehlata hai?", opts:["Venus","Mars","Jupiter","Jahan WiFi na pahunche"], correct:1 },
+  { q:"Bees (shehad ki makhiyan) kya banati hain?", opts:["Doodh","Shehad (Honey)","Syrup","Zyada tar chaos"], correct:1 },
+  { q:"Ye phrase poora karo: \"Better late than ___\"", opts:["Sorry","Never","Early","Traffic ka bahana"], correct:1 },
+];
+let qIndex = 0;
+
+function renderQuestion(){
+  const item = questions[qIndex];
+  document.getElementById('qCount').textContent = `Sawal ${qIndex+1} / ${questions.length}`;
+  document.getElementById('qText').textContent = item.q;
+  const optsWrap = document.getElementById('qOptions');
+  optsWrap.innerHTML = '';
+  item.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => selectAnswer(i));
+    optsWrap.appendChild(btn);
+  });
+}
+function selectAnswer(i){
+  const item = questions[qIndex];
+  const btns = document.querySelectorAll('#qOptions .opt');
+  btns.forEach(b => b.disabled = true);
+  if(i === item.correct){
+    btns[i].classList.add('correct');
+    scores.quiz += 10;
+  } else {
+    btns[i].classList.add('wrong');
+    btns[item.correct].classList.add('correct');
+  }
+  document.getElementById('quizScorePill').textContent = `Score: ${scores.quiz}`;
+  setTimeout(() => {
+    qIndex++;
+    if(qIndex < questions.length){
+      renderQuestion();
+    } else {
+      goTo('memory');
+      setupMemory();
+    }
+  }, 900);
+}
+
+// ---------- ROUND 2: MEMORY ----------
+const emojis = ['🐶','🐱','🦊','🐼','🐸','🐵'];
+let memoryState = { cards:[], flipped:[], matches:0, moves:0, lock:false };
+
+function setupMemory(){
+  memoryState = { cards:[], flipped:[], matches:0, moves:0, lock:false };
+  const deck = [...emojis, ...emojis].sort(() => Math.random()-0.5);
+  const grid = document.getElementById('memoryGrid');
+  grid.innerHTML = '';
+  document.getElementById('moveCount').textContent = 'Chaalein: 0';
+  document.getElementById('pairCount').textContent = 'Jode: 0 / 6';
+  deck.forEach((emoji, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.idx = idx;
+    card.dataset.emoji = emoji;
+    card.innerHTML = `<div class="face front">${emoji}</div><div class="face back">?</div>`;
+    card.addEventListener('click', () => flipCard(card));
+    grid.appendChild(card);
+    memoryState.cards.push(card);
+  });
+}
+function flipCard(card){
+  if(memoryState.lock) return;
+  if(card.classList.contains('flipped') || card.classList.contains('matched')) return;
+  card.classList.add('flipped');
+  memoryState.flipped.push(card);
+  if(memoryState.flipped.length === 2){
+    memoryState.moves++;
+    document.getElementById('moveCount').textContent = `Chaalein: ${memoryState.moves}`;
+    const [a,b] = memoryState.flipped;
+    if(a.dataset.emoji === b.dataset.emoji){
+      a.classList.add('matched'); b.classList.add('matched');
+      memoryState.matches++;
+      document.getElementById('pairCount').textContent = `Jode: ${memoryState.matches} / 6`;
+      memoryState.flipped = [];
+      if(memoryState.matches === 6){
+        const minMoves = 6;
+        scores.memory = Math.max(5, Math.min(30, 30 - (memoryState.moves - minMoves) * 2));
+        setTimeout(() => { goTo('reflex'); setupReflex(); }, 700);
+      }
+    } else {
+      memoryState.lock = true;
+      setTimeout(() => {
+        a.classList.remove('flipped'); b.classList.remove('flipped');
+        memoryState.flipped = [];
+        memoryState.lock = false;
+      }, 700);
+    }
+  }
+}
+
+// ---------- ROUND 3: REFLEX ----------
+let reflexState = { hits:0, timeLeft:15, holes:[], activeHole:null, moleTimer:null, tickTimer:null, running:false };
+
+function setupReflex(){
+  reflexState = { hits:0, timeLeft:15, holes:[], activeHole:null, moleTimer:null, tickTimer:null, running:false };
+  const grid = document.getElementById('reflexGrid');
+  grid.innerHTML = '';
+  document.getElementById('hitCount').textContent = 'Hits: 0';
+  document.getElementById('timerBar').style.width = '100%';
+  document.getElementById('reflexStartBtn').style.display = 'inline-block';
+  for(let i=0;i<9;i++){
+    const hole = document.createElement('div');
+    hole.className = 'hole';
+    hole.innerHTML = '<div class="mole">🐹</div>';
+    hole.addEventListener('click', () => {
+      if(hole.classList.contains('up') && reflexState.running){
+        hole.classList.remove('up');
+        reflexState.hits++;
+        document.getElementById('hitCount').textContent = `Hits: ${reflexState.hits}`;
+      }
+    });
+    grid.appendChild(hole);
+    reflexState.holes.push(hole);
+  }
+}
+document.getElementById('reflexStartBtn').addEventListener('click', startReflex);
+function startReflex(){
+  reflexState.running = true;
+  document.getElementById('reflexStartBtn').style.display = 'none';
+  popMole();
+  reflexState.tickTimer = setInterval(() => {
+    reflexState.timeLeft -= 0.1;
+    document.getElementById('timerBar').style.width = `${Math.max(0,(reflexState.timeLeft/15)*100)}%`;
+    if(reflexState.timeLeft <= 0){
+      endReflex();
+    }
+  }, 100);
+}
+function popMole(){
+  if(!reflexState.running) return;
+  reflexState.holes.forEach(h => h.classList.remove('up'));
+  const hole = reflexState.holes[Math.floor(Math.random()*reflexState.holes.length)];
+  hole.classList.add('up');
+  reflexState.moleTimer = setTimeout(popMole, 550 + Math.random()*350);
+}
+function endReflex(){
+  reflexState.running = false;
+  clearInterval(reflexState.tickTimer);
+  clearTimeout(reflexState.moleTimer);
+  reflexState.holes.forEach(h => h.classList.remove('up'));
+  scores.reflex = Math.min(20, reflexState.hits);
+  setTimeout(showResults, 500);
+}
+
+// ---------- RESULTS ----------
+function showResults(){
+  goTo('results');
+  burstConfetti();
+  document.getElementById('r-quiz').textContent = `${scores.quiz} / 50`;
+  document.getElementById('r-memory').textContent = `${scores.memory} / 30`;
+  document.getElementById('r-reflex').textContent = `${scores.reflex} / 20`;
+  const total = scores.quiz + scores.memory + scores.reflex;
+  document.getElementById('r-total').innerHTML = `<strong>${total} / 100</strong>`;
+  document.getElementById('bigScore').innerHTML = `${total}<span>/100</span>`;
+
+  let emoji, title, sub;
+  if(total >= 90){ emoji='🏆'; title='Legendary Bhai'; sub=`Bilkul legend ho ${NAME}. Isko frame karwa lo.`; }
+  else if(total >= 70){ emoji='😎'; title='Zabardast Bande'; sub=`Achha kaam ${NAME} — tumne dikha diya.`; }
+  else if(total >= 50){ emoji='👍'; title='Theek Thaak Koshish'; sub=`Bura nahi ${NAME}. Agli baar aur behtar.`; }
+  else { emoji='😂'; title='Thodi Practice Chahiye (Par Hum Tumse Pyar Karte Hain)'; sub=`Participate karna hi kaafi hai na, ${NAME}?`; }
+
+  document.getElementById('badgeEmoji').textContent = emoji;
+  document.getElementById('badgeTitle').textContent = title;
+  document.getElementById('badgeSub').textContent = sub;
+}
+
+// ---------- wiring ----------
+document.getElementById('startBtn').addEventListener('click', () => {
+  qIndex = 0; scores = { quiz:0, memory:0, reflex:0 };
+  document.getElementById('quizScorePill').textContent = 'Score: 0';
+  goTo('quiz');
+  renderQuestion();
+});
+document.getElementById('replayBtn').addEventListener('click', () => {
+  goTo('welcome');
+});
+</script>
+</body>
+</html>
